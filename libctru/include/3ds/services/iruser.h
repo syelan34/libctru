@@ -143,14 +143,21 @@ Result iruserGetCirclePadProState(IRUSER_Packet* packet, circlePadProInputRespon
  * @brief Reads c-stick position from circle pad pro
  * @param pos Pointer to write data to
  */
-Result iruserCirclePadProCStickRead(circlePosition* pos);
+bool iruserCirclePadProCStickRead(circlePosition* pos);
 
 /**
- * @brief Returns the packets received from the IR device.
- * @param [out] numpackets Number of valid packets that were received
- * @return Pointer to the packets received. The caller is responsible for freeing the memory (both the packet and its payload data).
+ * @brief gets the packets received from the IR device.
+ * @param packets Buffer to write packet data into.
+ * @param numpackets Size of buffer (in packets).
+ * @return Actual number of (valid) packets received
  */
-IRUSER_Packet* iruserGetPackets(u32* numpackets);
+u32 iruserGetNPackets(IRUSER_Packet packets[], u32 numpackets);
+
+/**
+ * @brief Returns the first valid packet received from the IR device.
+ * @param [out] packet Pointer to write the packet data into.
+ */
+bool iruserGetFirstPacket(IRUSER_Packet* packet) 
 
 /**
  * @brief Initializes the IR session
