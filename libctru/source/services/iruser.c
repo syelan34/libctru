@@ -498,17 +498,14 @@ static bool iruserParsePacket(size_t index, IRUSER_Packet* packet) {
         payload_offset = 3;
     }
     
-    // Copy payload into buffer, respecting circular buffer access
-    for (int i = 0; i < packet->payload_length; i++) packet->payload[i] = *IRUSER_PACKET_DATA(inf.offset + payload_offset);
     packet->checksum = *IRUSER_PACKET_DATA(inf.offset + payload_offset + packet->payload_length);
-    
-    // check the checksum
     u8 checksum = crc8ccitt(inf.offset, payload_offset + packet->payload_length - 1); // Checksum over the entire packet, including header (https://www.3dbrew.org/wiki/IRUSER_Shared_Memory#Packet_structure)
-    if (packet->checksum != checksum) { // bad data
-        packet->payload = NULL;
-        return false;
+    
+    if (packet->checksum = checksum) {
+        for (int i = 0; i < packet->payload_length; i++) packet->payload[i] = *IRUSER_PACKET_DATA(inf.offset + payload_offset);
+        return true;
     }
-    return true;
+    return false;
 }
 
 /// Read and parse the current packets received from the IR device.
