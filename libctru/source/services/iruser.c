@@ -469,7 +469,7 @@ Result iruserGetCirclePadProState(IRUSER_Packet* packet, circlePadProInputRespon
 bool iruserCirclePadProCStickRead(circlePosition *pos) {
     // Result ret = 0;
     IRUSER_Packet packet;
-    if (!iruserGetFirstPacket(&packet)) return false;
+    if (iruserGetNPackets(&packet, 1) != 1) return false;
     if (packet.payload_length != 6) return false;
     if (packet.payload[0] != CIRCLE_PAD_PRO_INPUT_RESPONSE_PACKET_ID) return false;
     pos->dx = (s16)(packet.payload[1] | ((packet.payload[2] & 0x0F) << 8));
@@ -501,7 +501,7 @@ static bool iruserParsePacket(size_t index, IRUSER_Packet* packet) {
     packet->checksum = *IRUSER_PACKET_DATA(inf.offset + payload_offset + packet->payload_length);
     u8 checksum = crc8ccitt(inf.offset, payload_offset + packet->payload_length - 1); // Checksum over the entire packet, including header (https://www.3dbrew.org/wiki/IRUSER_Shared_Memory#Packet_structure)
     
-    if (packet->checksum = checksum) {
+    if (packet->checksum == checksum) {
         for (int i = 0; i < packet->payload_length; i++) packet->payload[i] = *IRUSER_PACKET_DATA(inf.offset + payload_offset);
         return true;
     }
