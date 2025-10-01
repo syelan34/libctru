@@ -66,6 +66,7 @@ typedef struct {
 } IRUSER_PacketInfo;
 
 /// A packet of data sent/received to/from the IR device.
+/// `payload` should be initialized by the user to point to a buffer of at least 0x4000 bytes (the maximum payload size)
 typedef struct {
     /// The magic number of the packet. Should always be 0xA5.
     u8 magic_number;
@@ -154,12 +155,6 @@ bool iruserCirclePadProCStickRead(circlePosition* pos);
 u32 iruserGetNPackets(IRUSER_Packet packets[], u32 numpackets);
 
 /**
- * @brief Returns the first valid packet received from the IR device.
- * @param [out] packet Pointer to write the packet data into.
- */
-bool iruserGetFirstPacket(IRUSER_Packet* packet) 
-
-/**
  * @brief Initializes the IR session
  * @brief IR uses shared memory in non-shared mode  (puts less information in shared memory)
  * @param recv_buffer_size Size of receiving buffer
@@ -240,8 +235,8 @@ Result IRUSER_ReceiveIrNop();
 Result IRUSER_ReceiveIrNopLarge();
 
 
-Result IRUSER_GetLatestReceiveErrorResult();
-Result IRUSER_GetLatestSendErrorResult();
+Result IRUSER_GetLatestReceiveErrorResult(Result* result);
+Result IRUSER_GetLatestSendErrorResult(Result* result);
 Result IRUSER_GetConnectionStatus(IRUSER_ConnectionStatus* status);
 Result IRUSER_GetTryingToConnectStatus(IRUSER_TryingToConnectStatus* status);
 Result IRUSER_GetReceiveSizeFreeAndUsed();

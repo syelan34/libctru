@@ -19,14 +19,11 @@ Copy of the IR:USER API from ctru-rs
 #endif
 
 // Misc constants
-const size_t SHARED_MEM_STATUS_INFO_OFFSET = 0x00;
-const size_t SHARED_MEM_RECV_BUFFER_INFO_OFFSET = 0x10
-const size_t SHARED_MEM_RECV_BUFFER_OFFSET = 0x20;
-const size_t SHARED_MEM_INFO_SECTIONS_SIZE = 0x30;
-const size_t PAGE_SIZE = 0x1000;
-const u32 IR_BITRATE = 4;
-const u8 CIRCLE_PAD_PRO_INPUT_RESPONSE_PACKET_ID = 0x10;
-const u8 PACKET_INFO_SIZE = 8;
+static const size_t SHARED_MEM_STATUS_INFO_OFFSET = 0x00;
+static const size_t SHARED_MEM_RECV_BUFFER_INFO_OFFSET = 0x10;
+static const size_t SHARED_MEM_RECV_BUFFER_OFFSET = 0x20;
+static const u32 IR_BITRATE = 4;
+static const u8 CIRCLE_PAD_PRO_INPUT_RESPONSE_PACKET_ID = 0x10;
 
 static Handle iruserHandle;
 static Handle iruserSharedMemHandle;
@@ -76,7 +73,7 @@ static const u8 CRC_TABLE[256] = {
     0xE6, 0xE1, 0xE8, 0xEF, 0xFA, 0xFD, 0xF4, 0xF3
 };
 
-static const u8 crc8ccitt(const size_t offset, const size_t size) {
+static u8 crc8ccitt(const size_t offset, const size_t size) {
 	u8 val = 0;
 
 	u8 pos = 0;
@@ -110,8 +107,8 @@ Result iruserInit(u32 *sharedmem_addr, u32 sharedmem_size, size_t buffer_size, s
     iruserStatusInfo = (IRUSER_StatusInfo*)((u8*)iruserSharedMem + SHARED_MEM_STATUS_INFO_OFFSET);
     iruserRecvBufferInfo = (IRUSER_BufferInfo*)((u8*)iruserSharedMem + SHARED_MEM_RECV_BUFFER_INFO_OFFSET);
     iruserRecvPacketInfoBuffer = (IRUSER_PacketInfo*)((u8*)iruserSharedMem + SHARED_MEM_RECV_BUFFER_OFFSET);
-    iruserRecvPacketDataBuffer = (u8*)iruserRecvPacketInfoBuffer + iruserRecvPacketCount * PACKET_INFO_SIZE;
-    iruserRecvPacketDataBufferSize = (u32)(iruserRecvPacketDataBuffer - iruserRecPacketInfoBuffer);
+    iruserRecvPacketDataBuffer = (u8*)iruserRecvPacketInfoBuffer + iruserRecvPacketCount * sizeof(IRUSER_PacketInfo);
+    iruserRecvPacketDataBufferSize = iruserRecvBufferSize - iruserRecvPacketCount * sizeof(IRUSER_PacketInfo);
 
     return ret;
 
@@ -325,7 +322,7 @@ Result IRUSER_ReceiveIrNopLarge() {
     return MAKERESULT(RL_INFO, RS_NOTSUPPORTED, RM_IR, RD_NOT_IMPLEMENTED);
 }
 
-Result IRUSER_GetLatestReceiveErrorResult(u32* result) {
+Result IRUSER_GetLatestReceiveErrorResult(Result* result) {
     Result ret = 0;
 	u32 *cmdbuf = getThreadCommandBuffer();
    
@@ -338,7 +335,7 @@ Result IRUSER_GetLatestReceiveErrorResult(u32* result) {
 	return ret;
 }
 
-Result IRUSER_GetLatestSendErrorResult(u32* result) {
+Result IRUSER_GetLatestSendErrorResult(Result* result) {
     Result ret = 0;
 	u32 *cmdbuf = getThreadCommandBuffer();
    
@@ -471,7 +468,6 @@ Result iruserGetCirclePadProState(IRUSER_Packet* packet, circlePadProInputRespon
 
 bool iruserCirclePadProCStickRead(circlePosition *pos) {
     // Result ret = 0;
-    u32 n = 0;
     IRUSER_Packet packet;
     if (!iruserGetFirstPacket(&packet)) return false;
     if (packet.payload_length != 6) return false;
@@ -485,6 +481,7 @@ bool iruserCirclePadProCStickRead(circlePosition *pos) {
 
 static bool iruserParsePacket(size_t index, IRUSER_Packet* packet) {
     if (packet == NULL) return false;
+    if (packet->payload == NULL) return false;
     
     IRUSER_PacketInfo inf = iruserRecvPacketInfoBuffer[index % iruserRecvPacketCount];
     packet->magic_number = *IRUSER_PACKET_DATA(inf.offset + 0);
@@ -501,7 +498,8 @@ static bool iruserParsePacket(size_t index, IRUSER_Packet* packet) {
         payload_offset = 3;
     }
     
-    packet->payload = IRUSER_PACKET_DATA(inf.offset + payload_offset); // Pointer into the receive buffer, so won't be valid after we release the data using IRUSER_ReleaseReceivedData
+    // Copy payload into buffer, respecting circular buffer access
+    for (int i = 0; i < packet->payload_length; i++) packet->payload[i] = *IRUSER_PACKET_DATA(inf.offset + payload_offset);
     packet->checksum = *IRUSER_PACKET_DATA(inf.offset + payload_offset + packet->payload_length);
     
     // check the checksum
@@ -517,27 +515,15 @@ static bool iruserParsePacket(size_t index, IRUSER_Packet* packet) {
 u32 iruserGetNPackets(IRUSER_Packet packets[], u32 n) {
     u32 num_available_packets = iruserRecvBufferInfo->valid_packet_count;
     if (n < 1 || num_available_packets < 1) return 0;
-    
-    u32 num_packets = n < num_available_packets ? n : num_available_packets;
 
-    int failed = 0; // number of bad packets
+    int parsed = 0;
     
-    // Parse the packets
-    for (size_t i = 0; i < num_packets; i++) {
+    for (size_t i = 0; i < num_available_packets && parsed < n; i++) {
         // if bad packet, increment number of failed packets
-        failed += !iruserParsePacket((i + iruserRecvBufferInfo->start_index) % iruserRecvPacketCount, &packets[i - failed]);
+        parsed += iruserParsePacket((i + iruserRecvBufferInfo->start_index) % iruserRecvPacketCount, &packets[parsed]);
     }
-    
-    num_packets -= failed; // update the number of packets
 
-    return num_packets;
-}
-
-bool iruserGetFirstPacket(IRUSER_Packet* packet) {
-    if (!packet) return false;
-    
-    if (iruserRecvBufferInfo->valid_packet_count < 1) return false;
-    return iruserParsePacket(iruserRecBufferInfo->start_index, packet);
+    return parsed;
 }
 
 /// Circle Pad Pro specific request.
