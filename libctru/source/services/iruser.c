@@ -482,15 +482,14 @@ static bool iruserParsePacket(size_t index, IRUSER_Packet* packet) {
     IRUSER_PacketInfo inf = iruserRecvPacketInfoBuffer[index % iruserRecvPacketCount];
     packet->magic_number = *IRUSER_PACKET_DATA(inf.offset + 0);
     packet->destination_network_id = *IRUSER_PACKET_DATA(inf.offset + 1);
-    bool large = *IRUSER_PACKET_DATA(inf.offset + 2) & (1 << 7);
-    
+    bool large = *IRUSER_PACKET_DATA(inf.offset + 2) & (1 << 6);
     
     u32 payload_offset = 0;
     if (large) {
-        packet->payload_length = (*IRUSER_PACKET_DATA(inf.offset + 2) << 8) + *IRUSER_PACKET_DATA(inf.offset + 3);
+        packet->payload_length = ((*IRUSER_PACKET_DATA(inf.offset + 2) & 0x4F) << 8) + *IRUSER_PACKET_DATA(inf.offset + 3);
         payload_offset = 4;
     } else {
-        packet->payload_length = *IRUSER_PACKET_DATA(inf.offset + 2);
+        packet->payload_length = *IRUSER_PACKET_DATA(inf.offset + 2) & 0x4F; // bottom 6 bits
         payload_offset = 3;
     }
     
@@ -498,7 +497,7 @@ static bool iruserParsePacket(size_t index, IRUSER_Packet* packet) {
     u8 checksum = crc8ccitt(inf.offset, payload_offset + packet->payload_length - 1); // Checksum over the entire packet, including header (https://www.3dbrew.org/wiki/IRUSER_Shared_Memory#Packet_structure)
     
     if (packet->checksum == checksum) {
-        for (int i = 0; i < packet->payload_length; i++) packet->payload[i] = *IRUSER_PACKET_DATA(inf.offset + payload_offset);
+        for (int i = 0; i < packet->payload_length; i++) packet->payload[i] = *IRUSER_PACKET_DATA(inf.offset + payload_offset + i);
         return true;
     }
     return false;
