@@ -469,8 +469,8 @@ bool iruserCirclePadProCStickRead(IRUSER_Packet* packet, circlePosition *pos) {
     if (!packet->payload) return false;
     if (packet->payload_length != 6) return false;
     if (packet->payload[0] != CIRCLE_PAD_PRO_INPUT_RESPONSE_PACKET_ID) return false;
-    pos->dx = (s16)(packet.payload[1] | ((packet.payload[2] & 0x0F) << 8));
-    pos->dy = (s16)(((packet.payload[2] & 0xF0) >> 4) | ((packet.payload[3]) << 4));
+    pos->dx = (s16)(packet->payload[1] | ((packet->payload[2] & 0x0F) << 8));
+    pos->dy = (s16)(((packet->payload[2] & 0xF0) >> 4) | ((packet->payload[3]) << 4));
 
     return 0;
 }
