@@ -531,6 +531,19 @@ Result iruserCPPRequestInputPolling(u8 period_ms) {
     return IRUSER_SendIrNop(3, ir_request);
 }
 
+/// Circle Pad Pro specific request.
+///
+/// This will send a packet to the CPP requesting it to send back a packet with the calibration data
+Result iruserCPPRequestCalibrationData() {
+    u8 ir_request[4] = {
+        2,
+        0,
+        0,
+        0
+    };
+    return IRUSER_SendIrNop(4, ir_request);
+}
+
 Handle iruserGetServHandle() {
     return iruserHandle;
 }
