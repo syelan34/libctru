@@ -486,10 +486,10 @@ static bool iruserParsePacket(size_t index, IRUSER_Packet* packet) {
     
     u32 payload_offset = 0;
     if (large) {
-        packet->payload_length = ((*IRUSER_PACKET_DATA(inf.offset + 2) & 0x4F) << 8) + *IRUSER_PACKET_DATA(inf.offset + 3);
+        packet->payload_length = ((*IRUSER_PACKET_DATA(inf.offset + 2) & 0x3F) << 8) | *IRUSER_PACKET_DATA(inf.offset + 3);
         payload_offset = 4;
     } else {
-        packet->payload_length = *IRUSER_PACKET_DATA(inf.offset + 2) & 0x4F; // bottom 6 bits
+        packet->payload_length = *IRUSER_PACKET_DATA(inf.offset + 2) & 0x3F; // bottom 6 bits
         payload_offset = 3;
     }
     
