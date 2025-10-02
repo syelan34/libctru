@@ -494,7 +494,7 @@ static bool iruserParsePacket(size_t index, IRUSER_Packet* packet) {
     }
     
     packet->checksum = *IRUSER_PACKET_DATA(inf.offset + payload_offset + packet->payload_length);
-    u8 checksum = crc8ccitt(inf.offset, payload_offset + packet->payload_length - 1); // Checksum over the entire packet, including header (https://www.3dbrew.org/wiki/IRUSER_Shared_Memory#Packet_structure)
+    u8 checksum = crc8ccitt(inf.offset, payload_offset + packet->payload_length); // Checksum over the entire packet, including header (https://www.3dbrew.org/wiki/IRUSER_Shared_Memory#Packet_structure)
     
     if (packet->checksum == checksum) {
         for (int i = 0; i < packet->payload_length; i++) packet->payload[i] = *IRUSER_PACKET_DATA(inf.offset + payload_offset + i);
