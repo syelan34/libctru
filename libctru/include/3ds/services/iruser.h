@@ -138,13 +138,13 @@ void iruserProcessSharedMemory(void(*process_fn)(u8*));
  * @brief Gets circle pad pro inputs state
  * @param response Pointer to write data to
  */
-Result iruserGetCirclePadProState(IRUSER_Packet* packet, circlePadProInputResponse* response);
+bool iruserGetCirclePadProState(IRUSER_Packet* packet, circlePadProInputResponse* response);
 
 /**
  * @brief Reads c-stick position from circle pad pro
  * @param pos Pointer to write data to
  */
-bool iruserCirclePadProCStickRead(circlePosition* pos);
+bool iruserCirclePadProCStickRead(IRUSER_Packet* packet, circlePosition* pos);
 
 /**
  * @brief gets the packets received from the IR device.

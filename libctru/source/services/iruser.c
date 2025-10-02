@@ -451,31 +451,27 @@ IRUSER_StatusInfo iruserGetStatusInfo() {
     return *iruserStatusInfo;
 }
 
-Result iruserGetCirclePadProState(IRUSER_Packet* packet, circlePadProInputResponse* response) {
-    if (!packet) goto failure;
-    if (!packet->payload) goto failure;
-    if (packet->payload_length != 6) goto failure;
-    if (packet->payload[0] != CIRCLE_PAD_PRO_INPUT_RESPONSE_PACKET_ID) goto failure;
+bool iruserGetCirclePadProState(IRUSER_Packet* packet, circlePadProInputResponse* response) {
+    if (!packet) return false;
+    if (!packet->payload) return false;
+    if (packet->payload_length != 6) return false;
+    if (packet->payload[0] != CIRCLE_PAD_PRO_INPUT_RESPONSE_PACKET_ID) return false;
     response->cstick.csPos.dx = (u16)(packet->payload[1] | ((packet->payload[2] & 0x0F) << 8));
     response->cstick.csPos.dy = (u16)(((packet->payload[2] & 0xF0) >> 4) | ((packet->payload[3]) << 4));
     response->status_raw = packet->payload[4];
     response->unknown_field = packet->payload[5];
-    return 0;
-    failure: 
-    memset(response, 0, sizeof(circlePadProInputResponse));
-    return -1;
+    return true;
+
 }
 
-bool iruserCirclePadProCStickRead(circlePosition *pos) {
-    // Result ret = 0;
-    IRUSER_Packet packet;
-    if (iruserGetNPackets(&packet, 1) != 1) return false;
-    if (packet.payload_length != 6) return false;
-    if (packet.payload[0] != CIRCLE_PAD_PRO_INPUT_RESPONSE_PACKET_ID) return false;
+bool iruserCirclePadProCStickRead(IRUSER_Packet* packet, circlePosition *pos) {
+    if (!packet) return false;
+    if (!packet->payload) return false;
+    if (packet->payload_length != 6) return false;
+    if (packet->payload[0] != CIRCLE_PAD_PRO_INPUT_RESPONSE_PACKET_ID) return false;
     pos->dx = (s16)(packet.payload[1] | ((packet.payload[2] & 0x0F) << 8));
     pos->dy = (s16)(((packet.payload[2] & 0xF0) >> 4) | ((packet.payload[3]) << 4));
 
-    IRUSER_ReleaseReceivedData(1);
     return 0;
 }
 
